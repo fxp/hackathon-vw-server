@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+	<style type="text/css">
+		body, html,#allmap {width: 100%;height: 100%;overflow: hidden;margin:0;font-family:"微软雅黑";}
+	</style>
+    <script src="http://cdn.bootcss.com/jquery/1.10.2/jquery.min.js"></script>
+	<script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=bHbEGIEzXaATRk08GLSZSGUA"></script>
+	<script type="text/javascript" src="http://developer.baidu.com/map/jsdemo/demo/changeMore.js"></script>
+	<title>User Tracer</title>
+</head>
+<body>
+	<div id="allmap"></div>
+    <div id="navid">{{ navid }}</div>
+</body>
+</html>
+<script type="text/javascript">
+    // Definition of url
+    var request_trace = "/test/";
+    // Get user's navigetion id.
+    var navid = document.getElementById("navid").innerHTML;
+    alert(navid);
+
+    var para = {};
+    // Request for data of trace.
+    $.ajax({
+        type: "POST",              // 发送请求类型为POST
+        url : request_trace,       // 请求URL
+        data: para,                // 请求参数
+        async: false,              // 同步请求
+        success: function(result){ // 响应函数
+            alert(result["code"]);
+        },
+        dataType: 'json'           // 返回数据类型json
+    });
+
+
+	// Feature of Baidu API
+	var map = new BMap.Map("allmap");
+	map.centerAndZoom(new BMap.Point(116.404, 39.915), 15);
+
+	var points = [new BMap.Point(116.211059, 40.102659),
+				  new BMap.Point(116.206049, 40.105347),
+				  new BMap.Point(116.204562, 40.106436),
+				  new BMap.Point(116.201032, 40.106863),
+				  new BMap.Point(116.197394, 40.109273),
+                  new BMap.Point(116.197287, 40.112143),
+                  new BMap.Point(116.188059, 40.108624),
+                  new BMap.Point(116.185784, 40.107577),
+                  new BMap.Point(116.180857, 40.105885),
+                  new BMap.Point(116.184135, 40.106735)
+				 ];
+	function callback(xyResults){
+		var xyResult = null;
+		for(var index in xyResults){
+			xyResult = xyResults[index];
+			if(xyResult.error != 0){continue;}//出错就直接返回;
+			var point = new BMap.Point(xyResult.x, xyResult.y);
+			var marker = new BMap.Marker(point);
+			map.addOverlay(marker);
+			map.setCenter(point);// 由于写了这句，每一个被设置的点都是中心点的过程
+		}
+	}
+	setTimeout(function(){
+		BMap.Convertor.transMore(points,2,callback);        //一秒之后开始进行坐标转换。参数2，表示是从GCJ-02坐标到百度坐标。参数0，表示是从GPS到百度坐标
+	}, 1000);
+</script>

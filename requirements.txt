@@ -1,0 +1,7 @@
+logentries
+blinker
+bugsnag
+scikit-learn
+hmmlearn
+numpy
+scipy
