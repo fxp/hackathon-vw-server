@@ -17,9 +17,7 @@
 <body>
 <div id="allmap"></div>
 <div id="navid">{{ navid }}</div>
-<div id="r-result">
-    <input type="button" onclick="add_overlay();" value="添加覆盖物" />
-    <input type="button" onclick="remove_overlay();" value="删除覆盖物" />
+<div id="console">
 </div>
 </body>
 </html>
@@ -30,30 +28,83 @@
 //    myFirebaseRef.child("location/city").on("value", function(snapshot) {
 //        alert(snapshot.val());  // Alerts "San Francisco"
 //    });
-
+    // Initiation of index and count.
+    var index               = 0;
+    var total_points_count  = 0;
+    // Raw Points
+    var trace_points  = [];
     // Baidu Points
-    var baidu_points = [];
+    var baidu_points  = [];
     // Definition of url
     var request_trace = "/tracelist/";
     // Get user's navigetion id.
-    var navid = document.getElementById("navid").innerHTML;
+    var navid  = document.getElementById("navid").innerHTML;
+    document.getElementById("navid").innerHTML = "";
     // Feature of Baidu API
-    var map = new BMap.Map("allmap");
-    var point = new BMap.Point(116.404, 39.915);
-    map.centerAndZoom(point, 15);
+    var map    = new BMap.Map("allmap");
+    // Initiation of vehicle.
+    var vwIcon = new BMap.Icon(
+            "http://developer.baidu.com/map/jsdemo/img/Mario.png",
+            new BMap.Size(32, 70), {
+                //offset: new BMap.Size(0, -5),    //相当于CSS精灵
+                imageOffset: new BMap.Size(0, 0)    //图片的偏移量。为了是图片底部中心对准坐标点。
+            });
+    var carMk;
 
-    var dosome = function (converted_points){
-        // Create the polyline.
-//        var polyline = new BMap.Polyline(baidu_points, {strokeColor:"blue", strokeWeight:4, strokeOpacity:0.5});
-//        map.addOverlay(polyline);
-        alert("haha! " + converted_points.length);
-        for (var i = 0; i < converted_points.length; i ++){
-            var marker = new BMap.Marker(converted_points[i]);
-            map.addOverlay(marker);
+    // Run the Animation.
+    window.run = function (src, des){
+        var path_index = 0;
+        var paths      = [];
+        var len        = 10;
+        for (var i = 0; i < len; i++){
+            var new_lng = src.lng + i*(des.lng - src.lng)/len;
+            var new_lat = src.lat + i*(des.lat - src.lat)/len;
+            paths.push(new BMap.Point(new_lng, new_lat));
         }
+        function resetMkPoint(){
+            carMk.setPosition(paths[path_index]);
+            if(path_index < len){
+                setTimeout(function(){
+                    path_index++;
+                    resetMkPoint(path_index);
+                },100);
+            }
+        }
+        setTimeout(function(){
+            resetMkPoint();
+        },100);
+
+    };
+
+    var forward = function (){
+        // Draw a point on Map.
+        var marker = new BMap.Marker(baidu_points[index]);
+        map.addOverlay(marker);
         // Create the polyline.
-        var polyline = new BMap.Polyline(converted_points, {strokeColor:"blue", strokeWeight:4, strokeOpacity:0.5});
-        map.addOverlay(polyline);
+        if (index >= 1) {
+            var polyline = new BMap.Polyline(
+                    [baidu_points[index-1], baidu_points[index]],
+                    {strokeColor: "blue", strokeWeight: 4, strokeOpacity: 0.5}
+            );
+            map.addOverlay(polyline);
+            run(baidu_points[index-1], baidu_points[index]);
+        }
+        index ++;
+        if (index >= total_points_count){
+            alert("Arrived destination already!");
+            document.getElementById("console").innerHTML = "";
+        }
+    };
+
+    var drawMap = function (converted_points){
+        // Create the polyline.
+        alert("haha! " + converted_points.length);
+        total_points_count = converted_points.length;
+        baidu_points       = converted_points;
+        // Load Animation image.
+        carMk              = new BMap.Marker(baidu_points[0],{icon: vwIcon});
+        map.addOverlay(carMk);
+        document.getElementById("console").innerHTML = "<button onclick = 'forward()'><- Forward -></button>";
     };
 
     var converter = function (points, callback){
@@ -63,18 +114,17 @@
             new_points.push(point);
             i ++;
             if (i < points.length) {
-                BMap.Convertor.translate(points[i], 0, parseCallback);
+                BMap.Convertor.translate(points[i], 2, parseCallback);
             }
             else {
                 callback(new_points);
             }
         };
-        BMap.Convertor.translate(points[i], 0, parseCallback);
+        BMap.Convertor.translate(points[i], 2, parseCallback);
     };
 
     var getData = function (result){
         // Extract raw points
-        var trace_points = [];
         if (result["status"] != "ok"){
             trace_points = []
         }
@@ -88,11 +138,11 @@
                 points.push(new BMap.Point(trace_points[i]["x"], trace_points[i]["y"]));
             }
         }
-
+        map.centerAndZoom(points[0], 13);
         // Parse the points from gps to baidu points.
         // And mark these points in map
 
-        converter(points, dosome);
+        converter(points, drawMap);
     };
 
     // Request for data of trace.

@@ -3,7 +3,7 @@
 __author__ = "MeoWoodie"
 import pymongo
 import MongoUtils
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, url_for
 import json
 
 
@@ -15,7 +15,7 @@ vw_android_db = rootDB.vw_android
 
 @app.before_first_request
 def init_before_first_request():
-    pass
+    url_for("static", filename="firebase.js")
 
 @app.route("/trace/")
 @app.route("/trace/<navid>/", methods=["GET"])

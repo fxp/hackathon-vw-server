@@ -10,7 +10,7 @@
     <script src="http://cdn.bootcss.com/jquery/1.10.2/jquery.min.js"></script>
     <script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=bHbEGIEzXaATRk08GLSZSGUA"></script>
     <script type="text/javascript" src="http://developer.baidu.com/map/jsdemo/demo/convertor.js"></script>
-    <!--<script src="https://cdn.firebase.com/js/client/2.2.7/firebase.js"></script>-->
+    <script src="static/firebase.js"></script>
     <title>User Story</title>
 </head>
 <body>
@@ -34,14 +34,9 @@
     var navid = document.getElementById("navid").innerHTML;
     // Feature of Baidu API
     var map = new BMap.Map("allmap");
-    var point = new BMap.Point(116.404, 39.915);
-    map.centerAndZoom(point, 15);
 
     var drawMap = function (converted_points){
         // Create the polyline.
-//        var polyline = new BMap.Polyline(baidu_points, {strokeColor:"blue", strokeWeight:4, strokeOpacity:0.5});
-//        map.addOverlay(polyline);
-        alert("haha! " + converted_points.length);
         for (var i = 0; i < converted_points.length; i ++){
             var marker = new BMap.Marker(converted_points[i]);
             map.addOverlay(marker);
@@ -58,13 +53,13 @@
             new_points.push(point);
             i ++;
             if (i < points.length) {
-                BMap.Convertor.translate(points[i], 0, parseCallback);
+                BMap.Convertor.translate(points[i], 2, parseCallback);
             }
             else {
                 callback(new_points);
             }
         };
-        BMap.Convertor.translate(points[i], 0, parseCallback);
+        BMap.Convertor.translate(points[i], 2, parseCallback);
     };
 
     var getData = function (result){
@@ -83,7 +78,7 @@
                 points.push(new BMap.Point(trace_points[i]["x"], trace_points[i]["y"]));
             }
         }
-
+        map.centerAndZoom(points[0], 13);
         // Parse the points from gps to baidu points.
         // And mark these points in map
 
