@@ -26,6 +26,15 @@ def trace(navid=None):
     # result = json.dumps({"result": navid, "code": 0})
     return render_template("trace.html", navid=navid)
 
+@app.route("/story/")
+@app.route("/story/<navid>/", methods=["GET"])
+def story(navid):
+    # Analyse the incoming data.
+    # data = json.loads(request.data)
+
+    # result = json.dumps({"result": navid, "code": 0})
+    return render_template("story.html", navid=navid)
+
 @app.route("/test/", methods=["POST"])
 def test():
     # Analyse the incoming data.
@@ -41,7 +50,7 @@ def tracelist():
         post_data = json.loads(request.data)
         navid = post_data['navid']
         tracelist = MongoUtils.get_android_trace_list(navid, vw_android_db)
-        print tracelist
+        print len(tracelist)
         return json.dumps({'status': 'ok', 'tracelist': tracelist})
     except Exception, e:
         return {'status': 'error', 'msg': e}

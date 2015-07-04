@@ -17,53 +17,66 @@
 </body>
 </html>
 <script type="text/javascript">
+    // Feature of Baidu API
+    var map = new BMap.Map("allmap");
     // Definition of url
-    var request_trace = "/test/";
+    var request_trace = "/tracelist/";
     // Get user's navigetion id.
     var navid = document.getElementById("navid").innerHTML;
-    alert(navid);
 
-    var para = {};
+    var showTrace = function (result){
+        // Extract raw points
+        var trace_points = [];
+        if (result["status"] != "ok"){
+            trace_points = []
+        }
+        else {
+            trace_points = result["tracelist"];
+        }
+        // Initiation of Baidu POI
+        var points = [];
+        for (var i = 0; i < trace_points.length; i++){
+            if (i % 50  == 0) {
+                points.push(new BMap.Point(trace_points[i]["x"], trace_points[i]["y"]));
+            }
+        }
+        // Center the map
+        map.centerAndZoom(new BMap.Point(trace_points[0]["x"], trace_points[0]["y"]), 15);
+        var i;
+        var markers = [];
+
+        // Parse the points from gps to baidu points.
+        // And mark these points in map
+        window.callback = function (xyResults) {
+            var xyResult = null;
+            var baidu_points = [];
+            for (var index in xyResults) {
+                xyResult = xyResults[index];
+                if (xyResult.error != 0) {
+                    continue;
+                }
+                var point = new BMap.Point(xyResult.x, xyResult.y);
+                baidu_points.push(point);
+                var marker = new BMap.Marker(point);
+                map.addOverlay(marker);
+            }
+            // Create the polyline.
+            var polyline = new BMap.Polyline(baidu_points, {strokeColor:"blue", strokeWeight:4, strokeOpacity:0.5});
+            map.addOverlay(polyline);
+        };
+
+        BMap.Convertor.transMore(points, 2, callback);
+    };
+
     // Request for data of trace.
+    var para = {navid: navid};
     $.ajax({
-        type: "POST",              // 发送请求类型为POST
-        url : request_trace,       // 请求URL
-        data: para,                // 请求参数
-        async: false,              // 同步请求
-        success: function(result){ // 响应函数
-            alert(result["code"]);
-        },
-        dataType: 'json'           // 返回数据类型json
+        contentType: "application/json",
+        type: "POST",
+        url : request_trace,
+        data: JSON.stringify(para),
+        async: false,
+        success: showTrace,
+        dataType: 'json'
     });
-
-
-	// Feature of Baidu API
-	var map = new BMap.Map("allmap");
-	map.centerAndZoom(new BMap.Point(116.404, 39.915), 15);
-
-	var points = [new BMap.Point(116.211059, 40.102659),
-				  new BMap.Point(116.206049, 40.105347),
-				  new BMap.Point(116.204562, 40.106436),
-				  new BMap.Point(116.201032, 40.106863),
-				  new BMap.Point(116.197394, 40.109273),
-                  new BMap.Point(116.197287, 40.112143),
-                  new BMap.Point(116.188059, 40.108624),
-                  new BMap.Point(116.185784, 40.107577),
-                  new BMap.Point(116.180857, 40.105885),
-                  new BMap.Point(116.184135, 40.106735)
-				 ];
-	function callback(xyResults){
-		var xyResult = null;
-		for(var index in xyResults){
-			xyResult = xyResults[index];
-			if(xyResult.error != 0){continue;}//出错就直接返回;
-			var point = new BMap.Point(xyResult.x, xyResult.y);
-			var marker = new BMap.Marker(point);
-			map.addOverlay(marker);
-			map.setCenter(point);// 由于写了这句，每一个被设置的点都是中心点的过程
-		}
-	}
-	setTimeout(function(){
-		BMap.Convertor.transMore(points,2,callback);        //一秒之后开始进行坐标转换。参数2，表示是从GCJ-02坐标到百度坐标。参数0，表示是从GPS到百度坐标
-	}, 1000);
 </script>
