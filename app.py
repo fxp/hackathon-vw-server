@@ -1,12 +1,17 @@
 # -*- coding: UTF-8 -*-
 
 __author__ = "MeoWoodie"
-
-from flask import Flask, render_template, url_for
+import pymongo
+import MongoUtils
+from flask import Flask, render_template, request
 import json
 
 
 app = Flask(__name__)
+
+conn = pymongo.MongoClient(host='192.168.1.182', port=27017)
+rootDB = conn.Hackathon
+vw_android_db = rootDB.vw_android
 
 @app.before_first_request
 def init_before_first_request():
@@ -24,11 +29,22 @@ def trace(navid=None):
 @app.route("/test/", methods=["POST"])
 def test():
     # Analyse the incoming data.
-    # data = json.loads(request.data)
+    data = json.loads(request.data)
 
-    result = json.dumps({"result": "test", "code": 0})
-    print result
+    result = json.dumps({"result": data, "code": 0})
     return result
+
+@app.route('/tracelist/', methods=['POST'])
+def tracelist():
+    # print request.get_data()
+    try:
+        post_data = json.loads(request.data)
+        navid = post_data['navid']
+        tracelist = MongoUtils.get_android_trace_list(navid, vw_android_db)
+        print tracelist
+        return json.dumps({'status': 'ok', 'tracelist': tracelist})
+    except Exception, e:
+        return {'status': 'error', 'msg': e}
 
 if __name__ == "__main__":
     app.debug = True
