@@ -8,11 +8,15 @@
         #allmap{height:500px;width:100%;}
         #r-result{width:100%;}
     </style>
-    <script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=您的密钥"></script>
-    <title>添加/删除覆盖物</title>
+    <script src="http://cdn.bootcss.com/jquery/1.10.2/jquery.min.js"></script>
+    <script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=bHbEGIEzXaATRk08GLSZSGUA"></script>
+    <script type="text/javascript" src="http://developer.baidu.com/map/jsdemo/demo/convertor.js"></script>
+    <!--<script src="https://cdn.firebase.com/js/client/2.2.7/firebase.js"></script>-->
+    <title>User Story</title>
 </head>
 <body>
 <div id="allmap"></div>
+<div id="navid">{{ navid }}</div>
 <div id="r-result">
     <input type="button" onclick="add_overlay();" value="添加覆盖物" />
     <input type="button" onclick="remove_overlay();" value="删除覆盖物" />
@@ -20,29 +24,87 @@
 </body>
 </html>
 <script type="text/javascript">
-    // 百度地图API功能
+    // Definition of Firebase.
+//    var myFirebaseRef = new Firebase("https://popping-inferno-6736.firebaseIO.com");
+//    // Definition of Events of Firebase
+//    myFirebaseRef.child("location/city").on("value", function(snapshot) {
+//        alert(snapshot.val());  // Alerts "San Francisco"
+//    });
+
+    // Baidu Points
+    var baidu_points = [];
+    // Definition of url
+    var request_trace = "/tracelist/";
+    // Get user's navigetion id.
+    var navid = document.getElementById("navid").innerHTML;
+    // Feature of Baidu API
     var map = new BMap.Map("allmap");
     var point = new BMap.Point(116.404, 39.915);
     map.centerAndZoom(point, 15);
 
-    var polyline = new BMap.Polyline([
-        new BMap.Point(116.387112,39.920977),
-        new BMap.Point(116.385243,39.913063),
-        new BMap.Point(116.394226,39.917988),
-        new BMap.Point(116.401772,39.921364),
-        new BMap.Point(116.41248,39.927893),
-        new BMap.Point(116.399, 39.910),
-        new BMap.Point(116.405, 39.920),
-        new BMap.Point(116.425, 39.900)
-    ], {strokeColor:"blue", strokeWeight:2, strokeOpacity:0.5});   //创建折线
+    var dosome = function (converted_points){
+        // Create the polyline.
+//        var polyline = new BMap.Polyline(baidu_points, {strokeColor:"blue", strokeWeight:4, strokeOpacity:0.5});
+//        map.addOverlay(polyline);
+        alert("haha! " + converted_points.length);
+        for (var i = 0; i < converted_points.length; i ++){
+            var marker = new BMap.Marker(converted_points[i]);
+            map.addOverlay(marker);
+        }
+        // Create the polyline.
+        var polyline = new BMap.Polyline(converted_points, {strokeColor:"blue", strokeWeight:4, strokeOpacity:0.5});
+        map.addOverlay(polyline);
+    };
 
+    var converter = function (points, callback){
+        var new_points = [];
+        var i = 0;
+        var parseCallback = function (point){
+            new_points.push(point);
+            i ++;
+            if (i < points.length) {
+                BMap.Convertor.translate(points[i], 0, parseCallback);
+            }
+            else {
+                callback(new_points);
+            }
+        };
+        BMap.Convertor.translate(points[i], 0, parseCallback);
+    };
 
-    //添加覆盖物
-    function add_overlay(){
-        map.addOverlay(polyline);          //增加折线
-    }
-    //清除覆盖物
-    function remove_overlay(){
-        map.clearOverlays();
-    }
+    var getData = function (result){
+        // Extract raw points
+        var trace_points = [];
+        if (result["status"] != "ok"){
+            trace_points = []
+        }
+        else {
+            trace_points = result["tracelist"];
+        }
+        // Initiation of Baidu POI
+        var points = [];
+        for (var i = 0; i < trace_points.length; i++){
+            if (i % 35  == 0) {
+                points.push(new BMap.Point(trace_points[i]["x"], trace_points[i]["y"]));
+            }
+        }
+
+        // Parse the points from gps to baidu points.
+        // And mark these points in map
+
+        converter(points, dosome);
+    };
+
+    // Request for data of trace.
+    var para = {navid: navid};
+    $.ajax({
+        contentType: "application/json",
+        type: "POST",
+        url : request_trace,
+        data: JSON.stringify(para),
+        async: true,
+        success: getData,
+        dataType: 'json'
+    });
+
 </script>

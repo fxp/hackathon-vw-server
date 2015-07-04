@@ -1,30 +1,73 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-	<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
-	<style type="text/css">
-		body, html,#allmap {width: 100%;height: 100%;overflow: hidden;margin:0;font-family:"微软雅黑";}
-	</style>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+    <style type="text/css">
+        body, html{width: 100%;height: 100%;margin:0;font-family:"微软雅黑";}
+        #allmap{height:100%;width:100%;}
+    </style>
     <script src="http://cdn.bootcss.com/jquery/1.10.2/jquery.min.js"></script>
-	<script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=bHbEGIEzXaATRk08GLSZSGUA"></script>
-	<script type="text/javascript" src="http://developer.baidu.com/map/jsdemo/demo/changeMore.js"></script>
-	<title>User Tracer</title>
+    <script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=bHbEGIEzXaATRk08GLSZSGUA"></script>
+    <script type="text/javascript" src="http://developer.baidu.com/map/jsdemo/demo/convertor.js"></script>
+    <!--<script src="https://cdn.firebase.com/js/client/2.2.7/firebase.js"></script>-->
+    <title>User Story</title>
 </head>
 <body>
-	<div id="allmap"></div>
-    <div id="navid">{{ navid }}</div>
+<div id="allmap"></div>
+<div id="navid">{{ navid }}</div>
 </body>
 </html>
 <script type="text/javascript">
-    // Feature of Baidu API
-    var map = new BMap.Map("allmap");
+    // Definition of Firebase.
+    //    var myFirebaseRef = new Firebase("https://popping-inferno-6736.firebaseIO.com");
+    //    // Definition of Events of Firebase
+    //    myFirebaseRef.child("location/city").on("value", function(snapshot) {
+    //        alert(snapshot.val());  // Alerts "San Francisco"
+    //    });
+
+    // Baidu Points
+    var baidu_points = [];
     // Definition of url
     var request_trace = "/tracelist/";
     // Get user's navigetion id.
     var navid = document.getElementById("navid").innerHTML;
+    // Feature of Baidu API
+    var map = new BMap.Map("allmap");
+    var point = new BMap.Point(116.404, 39.915);
+    map.centerAndZoom(point, 15);
 
-    var showTrace = function (result){
+    var drawMap = function (converted_points){
+        // Create the polyline.
+//        var polyline = new BMap.Polyline(baidu_points, {strokeColor:"blue", strokeWeight:4, strokeOpacity:0.5});
+//        map.addOverlay(polyline);
+        alert("haha! " + converted_points.length);
+        for (var i = 0; i < converted_points.length; i ++){
+            var marker = new BMap.Marker(converted_points[i]);
+            map.addOverlay(marker);
+        }
+        // Create the polyline.
+        var polyline = new BMap.Polyline(converted_points, {strokeColor:"blue", strokeWeight:4, strokeOpacity:0.5});
+        map.addOverlay(polyline);
+    };
+
+    var converter = function (points, callback){
+        var new_points = [];
+        var i = 0;
+        var parseCallback = function (point){
+            new_points.push(point);
+            i ++;
+            if (i < points.length) {
+                BMap.Convertor.translate(points[i], 0, parseCallback);
+            }
+            else {
+                callback(new_points);
+            }
+        };
+        BMap.Convertor.translate(points[i], 0, parseCallback);
+    };
+
+    var getData = function (result){
         // Extract raw points
         var trace_points = [];
         if (result["status"] != "ok"){
@@ -36,36 +79,15 @@
         // Initiation of Baidu POI
         var points = [];
         for (var i = 0; i < trace_points.length; i++){
-            if (i % 50  == 0) {
+            if (i % 35  == 0) {
                 points.push(new BMap.Point(trace_points[i]["x"], trace_points[i]["y"]));
             }
         }
-        // Center the map
-        map.centerAndZoom(new BMap.Point(trace_points[0]["x"], trace_points[0]["y"]), 15);
-        var i;
-        var markers = [];
 
         // Parse the points from gps to baidu points.
         // And mark these points in map
-        window.callback = function (xyResults) {
-            var xyResult = null;
-            var baidu_points = [];
-            for (var index in xyResults) {
-                xyResult = xyResults[index];
-                if (xyResult.error != 0) {
-                    continue;
-                }
-                var point = new BMap.Point(xyResult.x, xyResult.y);
-                baidu_points.push(point);
-                var marker = new BMap.Marker(point);
-                map.addOverlay(marker);
-            }
-            // Create the polyline.
-            var polyline = new BMap.Polyline(baidu_points, {strokeColor:"blue", strokeWeight:4, strokeOpacity:0.5});
-            map.addOverlay(polyline);
-        };
 
-        BMap.Convertor.transMore(points, 2, callback);
+        converter(points, drawMap);
     };
 
     // Request for data of trace.
@@ -75,8 +97,9 @@
         type: "POST",
         url : request_trace,
         data: JSON.stringify(para),
-        async: false,
-        success: showTrace,
+        async: true,
+        success: getData,
         dataType: 'json'
     });
+
 </script>
